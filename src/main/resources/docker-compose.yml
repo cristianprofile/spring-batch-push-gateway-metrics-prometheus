@@ -1,0 +1,49 @@
+version: "3"
+networks:
+  monitor-net:
+    driver: bridge
+services:
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    user: "0:0"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    networks:
+      - monitor-net
+
+  prom:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+     # fixed the path here as originally you wrote without /etc
+     # while in above line you are mentioning /etc/ so was causing errors
+      - ./data/prometheus:/etc/prometheus
+    networks:
+      - monitor-net
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - 9100:9100
+
+  pushgateway:
+    image: prom/pushgateway:v1.0.1
+    volumes:
+      - ./pushgateway_data:/data
+    command:
+      - --persistence.file=/data/pushgateway.data
+      - --persistence.interval=1h
+    expose:
+      - 9091
+    ports:
+      - "9091:9091"
+    networks:
+      - monitor-net
